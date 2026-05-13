@@ -34,6 +34,6 @@ public class UrlMapping {
     private LocalDateTime createdAt;
 
     @Builder.Default
-    @Column(nullable = false)
+    @Column(nullable = false, columnDefinition = "bigint default 0")
     private Long clickCount = 0L;
 }
