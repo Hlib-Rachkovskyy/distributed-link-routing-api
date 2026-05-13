@@ -6,6 +6,7 @@ import com.project.urlshortener.service.UrlShortenerService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -17,6 +18,7 @@ import java.net.URI;
 public class UrlShortenerController {
 
     private final UrlShortenerService service;
+    private final StringRedisTemplate stringRedisTemplate;
 
     @Value("${app.shortener.base-url}")
     private String baseUrl;
@@ -30,6 +32,11 @@ public class UrlShortenerController {
     @GetMapping("/{shortCode}")
     public ResponseEntity<Void> redirect(@PathVariable String shortCode) {
         String originalUrl = service.resolveUrl(shortCode);
+        
+        // Track analytics
+        stringRedisTemplate.opsForValue().increment("clicks:" + shortCode, 1);
+        stringRedisTemplate.opsForSet().add("sync_click_keys", shortCode);
+        
         return ResponseEntity.status(HttpStatus.FOUND)
                 .location(URI.create(originalUrl))
                 .build();
