@@ -174,6 +174,37 @@ Location: https://example.com/very/long/url/path
 | `docker-compose down` | Stop local infrastructure |
 | `mvn clean compile` | Compile the source code |
 | `mvn spring-boot:run` | Start the Spring Boot application locally |
+| `docker build -t urlshortener:latest .` | Build the optimized application Docker image |
+| `docker run -p 8080:8080 ... urlshortener:latest` | Run the application in a Docker container |
+
+---
+
+## Production Deployment (Docker)
+
+This repository includes a production-ready, multi-stage `Dockerfile` optimized for security and performance.
+
+### 1. Build the Image
+The image uses a multi-stage build to compile the app without leaving build dependencies in the final image.
+```bash
+docker build -t urlshortener-service:latest .
+```
+
+### 2. Run the Container
+You can run the container, passing in the required environment variables to connect to your PostgreSQL and Redis instances.
+
+```bash
+docker run -d \
+  --name urlshortener \
+  -p 8080:8080 \
+  -e SPRING_DATASOURCE_URL=jdbc:postgresql://<postgres-host>:5432/postgres \
+  -e SPRING_DATASOURCE_USERNAME=postgres \
+  -e SPRING_DATASOURCE_PASSWORD=mysecretpassword \
+  -e SPRING_DATA_REDIS_HOST=<redis-host> \
+  -e SPRING_DATA_REDIS_PORT=6379 \
+  urlshortener-service:latest
+```
+
+> **Security Note:** The Docker container is hardened. It runs as a non-root user (`springuser` with UID `1001`) and relies on a `wget` based `HEALTHCHECK` using Spring Boot Actuator (`/actuator/health`).
 
 ---
 
