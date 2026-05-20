@@ -2,9 +2,9 @@ spring:
   application:
     name: url-shortener-service
   datasource:
-    url: jdbc:postgresql://localhost:5432/postgres
-    username: postgres
-    password: mysecretpassword
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://localhost:5432/url_shortener}
+    username: ${SPRING_DATASOURCE_USERNAME:admin}
+    password: ${SPRING_DATASOURCE_PASSWORD:password}
     driver-class-name: org.postgresql.Driver
   jpa:
     hibernate:
@@ -16,12 +16,17 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
   data:
     redis:
-      host: localhost
-      port: 6379
+      host: ${SPRING_DATA_REDIS_HOST:localhost}
+      port: ${SPRING_DATA_REDIS_PORT:6379}
+      password: ${SPRING_DATA_REDIS_PASSWORD:}
+      ssl:
+        enabled: ${SPRING_DATA_REDIS_SSL_ENABLED:false}
+
 
 server:
-  port: 8080
+  port: ${SERVER_PORT:8080}
 
 app:
   shortener:
-    base-url: http://localhost:8080/
+    base-url: ${APP_SHORTENER_BASE_URL:http://localhost:8080/}
+

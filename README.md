@@ -40,22 +40,62 @@ git clone https://github.com/Hlib-Rachkovskyy/distributed-link-routing-api.git
 cd distributed-link-routing-api/UrlShortenerService
 ```
 
-### 2. Start Infrastructure (Database & Cache)
+### 2. Configure Environment Variables (Supabase & Upstash Redis)
 
-The project includes a `docker-compose.yml` file to quickly spin up PostgreSQL and Redis.
+The application connects directly to your cloud infrastructure (**Supabase** for PostgreSQL and **Upstash** for Redis).
 
-```bash
-# Start PostgreSQL and Redis in the background
-docker-compose up -d
-```
+1. Copy the template `.env.example` file to create your local `.env` file:
+   ```bash
+   cp .env.example .env
+   ```
+2. Open your `.env` file and replace the placeholders with your actual cloud connection details:
 
-> **Note**: If you prefer to run Docker containers manually without Compose, ensure they match the credentials in `application.yml`.
-> ```bash
-> docker run -d --name redis -p 6379:6379 redis
-> docker run --name urlshortener-postgres -e POSTGRES_PASSWORD=mysecretpassword -p 5432:5432 -d postgres
-> ```
+   #### A. Supabase (PostgreSQL)
+   Retrieve connection details from the **Supabase Dashboard** (Settings > Database > Connection Pooling or Direct Connection):
+   ```env
+   SPRING_DATASOURCE_URL=jdbc:postgresql://db.xxxx.supabase.co:6543/postgres?sslmode=require
+   SPRING_DATASOURCE_USERNAME=postgres.xxxx
+   SPRING_DATASOURCE_PASSWORD=your_supabase_password
+   ```
+   *(Optional)* Add client credentials if you plan to use Supabase REST APIs or SDKs:
+   ```env
+   SUPABASE_URL=https://xxxx.supabase.co
+   SUPABASE_KEY=your-anon-key
+   SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+   ```
 
-### 3. Build the Application
+   #### B. Upstash (Redis)
+   Retrieve connection details from the **Upstash Console**. Since Upstash requires TLS/SSL, make sure to set `SPRING_DATA_REDIS_SSL_ENABLED=true`:
+   ```env
+   SPRING_DATA_REDIS_HOST=xxxx-xxxx-32001.upstash.io
+   SPRING_DATA_REDIS_PORT=32001
+   SPRING_DATA_REDIS_PASSWORD=your_upstash_redis_password
+   SPRING_DATA_REDIS_SSL_ENABLED=true
+   ```
+   *(Optional)* If you plan to make REST requests or use Upstash REST SDKs:
+   ```env
+   UPSTASH_REDIS_REST_URL=https://xxxx-xxxx-32001.upstash.io
+   UPSTASH_REDIS_REST_TOKEN=your_upstash_rest_token
+   ```
+
+3. To load the environment variables from `.env` in your terminal when running the application, you can:
+   - **Using Git Bash / Linux / macOS**:
+     ```bash
+     export $(grep -v '^#' .env | xargs)
+     ```
+   - **Using Windows PowerShell**:
+     ```powershell
+     Get-Content .env | ForEach-Object {
+       if ($_ -notmatch "^#" -and $_ -like "=*") {
+         $name, $value = $_ -split '=', 2
+         [System.Environment]::SetEnvironmentVariable($name, $value, "Process")
+       }
+     }
+     ```
+   - **Using an IDE**: Install plugins like the **EnvFile** plugin for IntelliJ IDEA, or configure standard environment variables in the Run/Debug Configurations.
+
+
+### 4. Build the Application
 
 Compile the code and download Maven dependencies:
 
@@ -63,7 +103,7 @@ Compile the code and download Maven dependencies:
 mvn clean install -DskipTests
 ```
 
-### 4. Start the Application
+### 5. Start the Application
 
 ```bash
 mvn spring-boot:run
@@ -190,15 +230,25 @@ docker build -t urlshortener-service:latest .
 ```
 
 ### 2. Run the Container
-You can run the container, passing in the required environment variables to connect to your PostgreSQL and Redis instances.
+You can run the container by passing your `.env` file directly, or by specifying individual environment variables to connect to your PostgreSQL and Redis instances.
 
+**Option A: Using the `.env` file**
 ```bash
 docker run -d \
   --name urlshortener \
   -p 8080:8080 \
-  -e SPRING_DATASOURCE_URL=jdbc:postgresql://<postgres-host>:5432/postgres \
-  -e SPRING_DATASOURCE_USERNAME=postgres \
-  -e SPRING_DATASOURCE_PASSWORD=mysecretpassword \
+  --env-file .env \
+  urlshortener-service:latest
+```
+
+**Option B: Specifying environment variables manually**
+```bash
+docker run -d \
+  --name urlshortener \
+  -p 8080:8080 \
+  -e SPRING_DATASOURCE_URL=jdbc:postgresql://<postgres-host>:5432/url_shortener \
+  -e SPRING_DATASOURCE_USERNAME=admin \
+  -e SPRING_DATASOURCE_PASSWORD=password \
   -e SPRING_DATA_REDIS_HOST=<redis-host> \
   -e SPRING_DATA_REDIS_PORT=6379 \
   urlshortener-service:latest
@@ -216,7 +266,7 @@ docker run -d \
 
 ### Database Connection Refused
 **Error**: `Connection refused: localhost:5432`
-**Solution**: Ensure your PostgreSQL container is running. If you ran it manually instead of using `docker-compose`, ensure the password matches `mysecretpassword` and the database name is `postgres` as configured in `application.yml`.
+**Solution**: Ensure your PostgreSQL container is running. If running manually (or using custom ports/credentials), verify that your `.env` settings (or fallback environment variable defaults in `application.yml`) match your PostgreSQL credentials (default database: `url_shortener`, user: `admin`, password: `password`).
 
 ### Class Not Found / Compilation Errors
 **Error**: `error: release version 22 not supported`
