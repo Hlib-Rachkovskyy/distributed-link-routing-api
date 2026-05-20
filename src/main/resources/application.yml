@@ -16,7 +16,8 @@ spring:
         dialect: org.hibernate.dialect.PostgreSQLDialect
   data:
     redis:
-      url: ${SPRING_DATA_REDIS_URL}
+      url: ${UPSTASH_REDIS_REST_URL}
+
 
 
 server:
